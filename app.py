@@ -1,70 +1,91 @@
-from flask import Flask, render_template, jsonify, request
-from src.helper import download_hugging_face_embeddings
-from langchain_pinecone import PineconeVectorStore
-from langchain_openai import ChatOpenAI
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from dotenv import load_dotenv
-from src.prompt import *
-import os
+"""
+DSPy Medical AI System — Main Entry Point
+
+Self-optimizing medical AI with declarative LLM pipelines,
+automatic prompt optimization, multi-agent reasoning,
+and evaluation-driven refinement.
+
+Usage:
+    python app.py                        # Start production server
+    python app.py --optimize             # Run optimization pipeline
+    python app.py --evaluate             # Run evaluation suite
+    python app.py --index                # Index documents
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+import uvicorn
+
+from config.settings import get_settings
 
 
-app = Flask(__name__)
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="DSPy Medical AI System",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Commands:
+  (default)     Start the production API server
+  --optimize    Run DSPy prompt optimization pipeline
+  --evaluate    Run evaluation suite
+  --index       Index documents into vector store
+        """,
+    )
+    parser.add_argument("--optimize", action="store_true", help="Run optimization pipeline")
+    parser.add_argument("--evaluate", action="store_true", help="Run evaluation suite")
+    parser.add_argument("--index", action="store_true", help="Index documents into vector store")
+    parser.add_argument("--host", type=str, default=None, help="Server host")
+    parser.add_argument("--port", type=int, default=None, help="Server port")
+    parser.add_argument("--workers", type=int, default=None, help="Number of workers")
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload (dev mode)")
+    args = parser.parse_args()
+
+    if args.optimize:
+        from scripts.optimize import main as optimize_main
+        optimize_main()
+        return
+
+    if args.evaluate:
+        from scripts.evaluate import main as evaluate_main
+        evaluate_main()
+        return
+
+    if args.index:
+        from scripts.index_documents import main as index_main
+        index_main()
+        return
+
+    # ── Start production server ──
+    settings = get_settings()
+    host = args.host or settings.server_host
+    port = args.port or settings.server_port
+    workers = args.workers or settings.server_workers
+
+    print(f"""
+    ╔══════════════════════════════════════════════════════════╗
+    ║          DSPy Medical AI System v2.0.0                  ║
+    ║                                                        ║
+    ║  Self-Optimizing · Multi-Agent · Evidence-Based         ║
+    ║                                                        ║
+    ║  Server: http://{host}:{port}                     ║
+    ║  API:    http://{host}:{port}/api/v1/chat         ║
+    ║  Health: http://{host}:{port}/api/v1/health       ║
+    ║  Docs:   http://{host}:{port}/docs                ║
+    ╚══════════════════════════════════════════════════════════╝
+    """)
+
+    uvicorn.run(
+        "api.server:create_app",
+        factory=True,
+        host=host,
+        port=port,
+        workers=1 if args.reload else workers,
+        reload=args.reload,
+        log_level="info",
+    )
 
 
-load_dotenv()
-
-PINECONE_API_KEY=os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY=os.environ.get('OPENAI_API_KEY')
-
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-
-
-embeddings = download_hugging_face_embeddings()
-
-index_name = "medical-chatbot" 
-# Embed each chunk and upsert the embeddings into your Pinecone index.
-docsearch = PineconeVectorStore.from_existing_index(
-    index_name=index_name,
-    embedding=embeddings
-)
-
-
-
-
-retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
-
-chatModel = ChatOpenAI(model="gpt-4o")
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ]
-)
-
-question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-
-
-
-@app.route("/")
-def index():
-    return render_template('chat.html')
-
-
-
-@app.route("/get", methods=["GET", "POST"])
-def chat():
-    msg = request.form["msg"]
-    input = msg
-    print(input)
-    response = rag_chain.invoke({"input": msg})
-    print("Response : ", response["answer"])
-    return str(response["answer"])
-
-
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port= 8080, debug= True)
+if __name__ == "__main__":
+    main()

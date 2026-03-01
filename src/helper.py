@@ -1,3 +1,16 @@
+"""
+Legacy helper module — DEPRECATED.
+
+Document loading, chunking, and embedding functions have been moved to
+the retrieval package for better modularity:
+
+  - retrieval/indexer.py    → DocumentIndexer (load, chunk, index)
+  - retrieval/embeddings.py → EmbeddingManager (lazy-loaded singleton)
+  - retrieval/vectorstore.py → PineconeManager (index lifecycle)
+
+This module is retained for backward compatibility.
+"""
+
 from langchain.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -5,45 +18,29 @@ from typing import List
 from langchain.schema import Document
 
 
-#Extract Data From the PDF File
 def load_pdf_file(data):
-    loader= DirectoryLoader(data,
-                            glob="*.pdf",
-                            loader_cls=PyPDFLoader)
-
-    documents=loader.load()
-
-    return documents
-
+    """Load PDF files from a directory. See retrieval.indexer.DocumentIndexer."""
+    loader = DirectoryLoader(data, glob="*.pdf", loader_cls=PyPDFLoader)
+    return loader.load()
 
 
 def filter_to_minimal_docs(docs: List[Document]) -> List[Document]:
-    """
-    Given a list of Document objects, return a new list of Document objects
-    containing only 'source' in metadata and the original page_content.
-    """
-    minimal_docs: List[Document] = []
-    for doc in docs:
-        src = doc.metadata.get("source")
-        minimal_docs.append(
-            Document(
-                page_content=doc.page_content,
-                metadata={"source": src}
-            )
+    """Strip metadata to essentials. See retrieval.indexer.DocumentIndexer."""
+    return [
+        Document(
+            page_content=doc.page_content,
+            metadata={"source": doc.metadata.get("source")},
         )
-    return minimal_docs
+        for doc in docs
+    ]
 
 
-
-#Split the Data into Text Chunks
 def text_split(extracted_data):
-    text_splitter=RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
-    text_chunks=text_splitter.split_documents(extracted_data)
-    return text_chunks
+    """Split documents into chunks. See retrieval.indexer.DocumentIndexer."""
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
+    return text_splitter.split_documents(extracted_data)
 
 
-
-#Download the Embeddings from HuggingFace 
 def download_hugging_face_embeddings():
-    embeddings=HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')  #this model return 384 dimensions
-    return embeddings
+    """Load embedding model. See retrieval.embeddings.EmbeddingManager."""
+    return HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')

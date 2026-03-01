@@ -221,3 +221,21 @@ border-radius: 0 0 15px 15px !important;
 	margin-bottom: 15px !important;
 }
 }
+
+/* ── DSPy Medical AI Additions ─────────────────────────────── */
+.meta_info {
+	border-top: 1px solid rgba(255,255,255,0.15);
+	padding-top: 6px;
+	margin-top: 6px;
+}
+.meta_info .badge {
+	font-size: 0.7em;
+	margin-right: 6px;
+}
+.meta_info small {
+	color: rgba(255,255,255,0.5);
+	font-size: 0.7em;
+}
+.msg_cotainer em {
+	color: rgba(255,255,255,0.6);
+}
