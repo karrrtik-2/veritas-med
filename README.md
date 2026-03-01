@@ -1,6 +1,6 @@
-#  Medical AI System
+#  Veritas Med System 
 
-> A production-grade, self-optimizing medical question-answering platform built on DSPy declarative LLM pipelines, LangChain retrieval, Pinecone vector search, and **AutoGen multi agent collaboration**. Designed for containerized deployment on AWS.
+> A production-grade, self-optimizing medical question-answering platform built on DSPy declarative LLM pipelines, LangChain retrieval, Pinecone vector search, and **AutoGen multi agent collaboration**. Designed for containerized deployment on AWS.(Latin veritas = truth; speaks to evidence-grounded responses)
 
 **Core Stack:** DSPy · LangChain · Pinecone · FastAPI · **AutoGen** · OpenAI · Docker · AWS
 
